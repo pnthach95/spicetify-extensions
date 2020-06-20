@@ -34,4 +34,4 @@ async function copyToClipboard(uris) {
   }
 }
 
-new Spicetify.ContextMenu.Item('Copy text to Clipboard', copyToClipboard).register();
+new Spicetify.ContextMenu.Item('Copy text', copyToClipboard).register();
