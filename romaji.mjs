@@ -49,16 +49,20 @@ async function showRomaji(uris) {
 }
 
 function shouldAdd(uris) {
-  const uri = Spicetify.URI.fromString(uris[0]);
-  switch (uri.type) {
-    case Type.ALBUM:
-    case Type.TRACK:
-    case Type.ARTIST:
-    case Type.PLAYLIST:
-    case Type.PLAYLIST_V2:
-      return true;
-    default:
-      return false;
+  if (uris.length === 1) {
+    const uri = Spicetify.URI.fromString(uris[0]);
+    switch (uri.type) {
+      case Type.ALBUM:
+      case Type.TRACK:
+      case Type.ARTIST:
+      case Type.PLAYLIST:
+      case Type.PLAYLIST_V2:
+        return true;
+      default:
+        return false;
+    }
+  } else {
+    return false;
   }
 }
 
