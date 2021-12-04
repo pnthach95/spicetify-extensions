@@ -1,10 +1,17 @@
-[Copy text](copytoclipboard.mjs): There are some texts can't be copied
+# Copy text extension
 
-[Show Romaji](romaji.mjs): Shameless copy from [this](https://github.com/khanhas/spicetify-cli/wiki/Javascript-Module-and-Utilize-NPM)
+Spicetify extension which allows you to copy text (song name, artist name, album name) in Spotify.
 
-```
-spicetify config extensions copytoclipboard2.js
-spicetify config extensions romaji.mjs
-npm install kuroshiro kuroshiro-analyzer-kuromoji
-spicetify apply
-```
+## Preview
+
+![Screenshot](screenshot.png)
+
+## Note
+
+Use `copytoclipboard.js` for Spotify <v1.1.59 and Spicetify <v2.0.0.
+
+Use `copytoclipboard2.js` for Spotify ≥v1.1.59 and Spicetify ≥v2.0.0. Uninstall old version before installing this version.
+
+Some text can't copy, it shows error like this:
+
+![error](error.png)
