@@ -1,0 +1,7 @@
+{
+  "name": "Copy to Clipboard",
+  "description": "Spicetify extension to copy text (song name, artist name, album name) to clipboard",
+  "preview": "screenshot.png",
+  "main": "copytoclipboard2.js",
+  "readme": "README.md"
+}
