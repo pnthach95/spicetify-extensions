@@ -3,5 +3,11 @@
   "description": "Spicetify extension to copy text (song name, artist name, album name) to clipboard",
   "preview": "screenshot.png",
   "main": "copytoclipboard2.js",
+  "authors": [
+    {
+      "name": "pnthach95",
+      "url": "https://github.com/pnthach95"
+    }
+  ],
   "readme": "README.md"
 }
