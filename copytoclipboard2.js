@@ -2,7 +2,7 @@
 // AUTHOR: pnthach95
 // DESCRIPTION: Adds Copy text to context menu for Spotify v1.1.59 and Spicetify v2.0.0 and above
 
-/// <reference path="../globals.d.ts" />
+/// <reference path="globals.d.ts" />
 
 let copyTextCount = 0;
 (async function copyText() {
