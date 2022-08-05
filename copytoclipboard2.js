@@ -6,8 +6,8 @@
 
 let copyTextCount = 0;
 (async function copyText() {
-    if (!Spicetify && copyTextCount < 200) {
-        setTimeout(copyText, 300);
+    if (!Spicetify && copyTextCount < 1000) {
+        setTimeout(copyText, 10);
         copyTextCount++;
         return;
     }
