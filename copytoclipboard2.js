@@ -6,68 +6,140 @@
 
 let copyTextCount = 0;
 (async function copyText() {
-    if (!Spicetify && copyTextCount < 1000) {
-        setTimeout(copyText, 10);
-        copyTextCount++;
-        return;
-    }
-    initCopyText();
+  if (!Spicetify && copyTextCount < 1000) {
+    setTimeout(copyText, 10);
+    copyTextCount++;
+    return;
+  }
+  initCopyText();
+  initCopySongArtistText();
 })();
 
 function initCopyText() {
-    const { Type } = Spicetify.URI;
+  const {Type} = Spicetify.URI;
 
-    async function getText(uris) {
-        const uri = Spicetify.URI.fromString(uris[0]);
+  async function getText(uris) {
+    const uri = Spicetify.URI.fromString(uris[0]);
 
-        switch (uri.type) {
-            case Type.TRACK:
-                sendToClipboard((await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${uri.getBase62Id()}`)).name);
-                break;
-            case Type.ALBUM:
-                sendToClipboard((await Spicetify.CosmosAsync.get(`wg://album/v1/album-app/album/${uri.getBase62Id()}/desktop`)).name);
-                break;
-
-            case Type.ARTIST:
-                sendToClipboard((await Spicetify.CosmosAsync.get(`wg://artist/v1/${uri.getBase62Id()}/desktop?format=json`)).info.name);
-                break;
-            case Type.PLAYLIST:
-            case Type.PLAYLIST_V2:
-                sendToClipboard((await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/playlist/spotify:playlist:${uri.getBase62Id()}`)).playlist.name);
-                break;
-            case Type.SHOW:
-                sendToClipboard((await Spicetify.CosmosAsync.get(`sp://core-show/v1/shows/${uri.getBase62Id()}?responseFormat=protobufJson`)).header.showMetadata.name);
-                break;
-            default:
-                break;
-        }
+    switch (uri.type) {
+      case Type.TRACK:
+        sendToClipboard(
+          (
+            await Spicetify.CosmosAsync.get(
+              `https://api.spotify.com/v1/tracks/${uri.getBase62Id()}`,
+            )
+          ).name,
+        );
+        break;
+      case Type.ALBUM:
+        sendToClipboard(
+          (
+            await Spicetify.CosmosAsync.get(
+              `wg://album/v1/album-app/album/${uri.getBase62Id()}/desktop`,
+            )
+          ).name,
+        );
+        break;
+      case Type.ARTIST:
+        sendToClipboard(
+          (
+            await Spicetify.CosmosAsync.get(
+              `wg://artist/v1/${uri.getBase62Id()}/desktop?format=json`,
+            )
+          ).info.name,
+        );
+        break;
+      case Type.PLAYLIST:
+      case Type.PLAYLIST_V2:
+        sendToClipboard(
+          (
+            await Spicetify.CosmosAsync.get(
+              `sp://core-playlist/v1/playlist/spotify:playlist:${uri.getBase62Id()}`,
+            )
+          ).playlist.name,
+        );
+        break;
+      case Type.SHOW:
+        sendToClipboard(
+          (
+            await Spicetify.CosmosAsync.get(
+              `sp://core-show/v1/shows/${uri.getBase62Id()}?responseFormat=protobufJson`,
+            )
+          ).header.showMetadata.name,
+        );
+        break;
+      default:
+        break;
     }
+  }
 
-    function sendToClipboard(text) {
-        if (text) {
-            Spicetify.showNotification(`copied : ${text}`);
-            Spicetify.Platform.ClipboardAPI.copy(text);
-        }
+  async function getSongArtistText(uris) {
+    const uri = Spicetify.URI.fromString(uris[0]);
+
+    switch (uri.type) {
+      case Type.TRACK:
+        const res = await Spicetify.CosmosAsync.get(
+          `https://api.spotify.com/v1/tracks/${uri.getBase62Id()}`,
+        );
+        sendToClipboard(
+          res.name + ' | ' + res.artists.map(a => a.name).join('; '),
+        );
+        break;
+      default:
+        break;
     }
+  }
 
-    function shouldAddContextMenu(uris) {
-        if (uris.length === 1) {
-            const uri = Spicetify.URI.fromString(uris[0]);
-            switch (uri.type) {
-                case Type.TRACK:
-                case Type.ALBUM:
-                case Type.ARTIST:
-                case Type.PLAYLIST:
-                case Type.PLAYLIST_V2:
-                case Type.SHOW:
-                    return true;
-                default:
-                    return false;
-            }
-        } else {
-            return false;
-        }
+  function sendToClipboard(text) {
+    if (text) {
+      Spicetify.showNotification(`copied : ${text}`);
+      Spicetify.Platform.ClipboardAPI.copy(text);
     }
+  }
 
-    new Spicetify.ContextMenu.Item("Copy Text", getText, shouldAddContextMenu, "copy").register();
+  function shouldAddContextMenu(uris) {
+    if (uris.length === 1) {
+      const uri = Spicetify.URI.fromString(uris[0]);
+      switch (uri.type) {
+        case Type.TRACK:
+        case Type.ALBUM:
+        case Type.ARTIST:
+        case Type.PLAYLIST:
+        case Type.PLAYLIST_V2:
+        case Type.SHOW:
+          return true;
+        default:
+          return false;
+      }
+    } else {
+      return false;
+    }
+  }
+
+  function shouldAddCSAContextMenu(uris) {
+    if (uris.length === 1) {
+      const uri = Spicetify.URI.fromString(uris[0]);
+      switch (uri.type) {
+        case Type.TRACK:
+          return true;
+        default:
+          return false;
+      }
+    } else {
+      return false;
+    }
+  }
+
+  new Spicetify.ContextMenu.Item(
+    'Copy Text',
+    getText,
+    shouldAddContextMenu,
+    'copy',
+  ).register();
+  new Spicetify.ContextMenu.Item(
+    'Copy Song name & Artist name(s)',
+    getSongArtistText,
+    shouldAddCSAContextMenu,
+    'copy',
+  ).register();
 }
