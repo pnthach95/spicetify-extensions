@@ -12,7 +12,6 @@ let copyTextCount = 0;
     return;
   }
   initCopyText();
-  initCopySongArtistText();
 })();
 
 function initCopyText() {
