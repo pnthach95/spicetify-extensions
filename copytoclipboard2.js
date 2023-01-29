@@ -35,6 +35,16 @@ function initCopyText() {
           `${uri.track ? uri.track : ""}${uri.artist ? " by " + uri.artist : ""}${uri.album ? " from " + uri.album : ""}`
         );
         break;
+      case Type.LOCAL_ARTIST:
+        sendToClipboard(
+          `${uri.artist ? uri.artist : ""}`
+        );
+        break;
+      case Type.LOCAL_ALBUM:
+        sendToClipboard(
+          `${uri.album ? uri.album : ""}`
+        );
+        break;
       case Type.ALBUM:
         sendToClipboard(
           (
@@ -107,6 +117,8 @@ function initCopyText() {
       switch (uri.type) {
         case Type.TRACK:
         case Type.LOCAL:
+        case Type.LOCAL_ARTIST:
+        case Type.LOCAL_ALBUM:
         case Type.ALBUM:
         case Type.ARTIST:
         case Type.PLAYLIST:
