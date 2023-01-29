@@ -30,6 +30,21 @@ function initCopyText() {
           ).name,
         );
         break;
+      case Type.LOCAL:
+        sendToClipboard(
+          `${uri.track ? uri.track : ""}${uri.artist ? " by " + uri.artist : ""}${uri.album ? " from " + uri.album : ""}`
+        );
+        break;
+      case Type.LOCAL_ARTIST:
+        sendToClipboard(
+          `${uri.artist ? uri.artist : ""}`
+        );
+        break;
+      case Type.LOCAL_ALBUM:
+        sendToClipboard(
+          `${uri.album ? uri.album : ""}`
+        );
+        break;
       case Type.ALBUM:
         sendToClipboard(
           (
@@ -67,6 +82,16 @@ function initCopyText() {
           ).header.showMetadata.name,
         );
         break;
+      case Type.PROFILE:
+        sendToClipboard(
+          (await Spicetify.CosmosAsync.get("sp://core-profile/v1/profiles", { usernames: uri.username })).profiles[0].name
+        );
+        break;
+      case Type.FOLDER:
+        let rootlist = await Spicetify.Platform.RootlistAPI.getContents();
+        let folder = rootlist.items.filter((item) => item.type == "folder" && item.uri.includes(uri._base62Id));
+        sendToClipboard(folder[0].name);
+        break;
       default:
         break;
     }
@@ -101,11 +126,16 @@ function initCopyText() {
       const uri = Spicetify.URI.fromString(uris[0]);
       switch (uri.type) {
         case Type.TRACK:
+        case Type.LOCAL:
+        case Type.LOCAL_ARTIST:
+        case Type.LOCAL_ALBUM:
         case Type.ALBUM:
         case Type.ARTIST:
         case Type.PLAYLIST:
         case Type.PLAYLIST_V2:
         case Type.SHOW:
+        case Type.PROFILE:
+        case Type.FOLDER:
           return true;
         default:
           return false;
