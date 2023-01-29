@@ -32,7 +32,7 @@ function initCopyText() {
         break;
       case Type.LOCAL:
         sendToClipboard(
-          `${uri.track}${uri.artist ? " by " + uri.artist : ""}${uri.album ? " from " + uri.album : ""}`
+          `${uri.track ? uri.track : ""}${uri.artist ? " by " + uri.artist : ""}${uri.album ? " from " + uri.album : ""}`
         );
         break;
       case Type.ALBUM:
