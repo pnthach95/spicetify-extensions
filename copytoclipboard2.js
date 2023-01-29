@@ -82,6 +82,16 @@ function initCopyText() {
           ).header.showMetadata.name,
         );
         break;
+      case Type.PROFILE:
+        sendToClipboard(
+          (await Spicetify.CosmosAsync.get("sp://core-profile/v1/profiles", { usernames: uri.username })).profiles[0].name
+        );
+        break;
+      case Type.FOLDER:
+        let rootlist = await Spicetify.Platform.RootlistAPI.getContents();
+        let folder = rootlist.items.filter((item) => item.type == "folder" && item.uri.includes(uri._base62Id));
+        sendToClipboard(folder[0].name);
+        break;
       default:
         break;
     }
@@ -124,6 +134,8 @@ function initCopyText() {
         case Type.PLAYLIST:
         case Type.PLAYLIST_V2:
         case Type.SHOW:
+        case Type.PROFILE:
+        case Type.FOLDER:
           return true;
         default:
           return false;
