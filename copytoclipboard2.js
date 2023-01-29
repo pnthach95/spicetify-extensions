@@ -30,6 +30,11 @@ function initCopyText() {
           ).name,
         );
         break;
+      case Type.LOCAL:
+        sendToClipboard(
+          `${uri.track}${uri.artist ? " by " + uri.artist : ""}${uri.album ? " from " + uri.album : ""}`
+        );
+        break;
       case Type.ALBUM:
         sendToClipboard(
           (
@@ -101,6 +106,7 @@ function initCopyText() {
       const uri = Spicetify.URI.fromString(uris[0]);
       switch (uri.type) {
         case Type.TRACK:
+        case Type.LOCAL:
         case Type.ALBUM:
         case Type.ARTIST:
         case Type.PLAYLIST:
