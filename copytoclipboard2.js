@@ -19,13 +19,14 @@ function initCopyText() {
 
   async function getText(uris) {
     const uri = Spicetify.URI.fromString(uris[0]);
+    const id = uri._base62Id ? uri._base62Id : uri.id;
 
     switch (uri.type) {
       case Type.TRACK:
         sendToClipboard(
           (
             await Spicetify.CosmosAsync.get(
-              `https://api.spotify.com/v1/tracks/${uri.getBase62Id()}`,
+              `https://api.spotify.com/v1/tracks/${id}`,
             )
           ).name,
         );
@@ -49,7 +50,7 @@ function initCopyText() {
         sendToClipboard(
           (
             await Spicetify.CosmosAsync.get(
-              `wg://album/v1/album-app/album/${uri.getBase62Id()}/desktop`,
+              `wg://album/v1/album-app/album/${id}/desktop`,
             )
           ).name,
         );
@@ -58,7 +59,7 @@ function initCopyText() {
         sendToClipboard(
           (
             await Spicetify.CosmosAsync.get(
-              `wg://artist/v1/${uri.getBase62Id()}/desktop?format=json`,
+              `wg://artist/v1/${id}/desktop?format=json`,
             )
           ).info.name,
         );
@@ -68,7 +69,7 @@ function initCopyText() {
         sendToClipboard(
           (
             await Spicetify.CosmosAsync.get(
-              `sp://core-playlist/v1/playlist/spotify:playlist:${uri.getBase62Id()}`,
+              `sp://core-playlist/v1/playlist/spotify:playlist:${id}`,
             )
           ).playlist.name,
         );
@@ -77,7 +78,7 @@ function initCopyText() {
         sendToClipboard(
           (
             await Spicetify.CosmosAsync.get(
-              `sp://core-show/v1/shows/${uri.getBase62Id()}?responseFormat=protobufJson`,
+              `sp://core-show/v1/shows/${id}?responseFormat=protobufJson`,
             )
           ).header.showMetadata.name,
         );
@@ -89,7 +90,7 @@ function initCopyText() {
         break;
       case Type.FOLDER:
         let rootlist = await Spicetify.Platform.RootlistAPI.getContents();
-        let folder = rootlist.items.filter((item) => item.type == "folder" && item.uri.includes(uri._base62Id));
+        let folder = rootlist.items.filter((item) => item.type == "folder" && item.uri.includes(id));
         sendToClipboard(folder[0].name);
         break;
       default:
@@ -99,14 +100,15 @@ function initCopyText() {
 
   async function getSongArtistText(uris) {
     const uri = Spicetify.URI.fromString(uris[0]);
+    const id = uri._base62Id ? uri._base62Id : uri.id;
 
     switch (uri.type) {
       case Type.TRACK:
         const res = await Spicetify.CosmosAsync.get(
-          `https://api.spotify.com/v1/tracks/${uri.getBase62Id()}`,
+          `https://api.spotify.com/v1/tracks/${id}`,
         );
         sendToClipboard(
-          res.name + ' | ' + res.artists.map(a => a.name).join('; '),
+          res.name + ' by ' + res.artists.map(a => a.name).join(', '),
         );
         break;
       default:
@@ -166,7 +168,7 @@ function initCopyText() {
     'copy',
   ).register();
   new Spicetify.ContextMenu.Item(
-    'Copy Song name & Artist name(s)',
+    'Copy Song & Artist names',
     getSongArtistText,
     shouldAddCSAContextMenu,
     'copy',
