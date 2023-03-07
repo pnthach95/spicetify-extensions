@@ -1,5 +1,5 @@
 // NAME: Copy Text
-// AUTHOR: pnthach95
+// AUTHOR: pnthach95, Tetrax-10
 // DESCRIPTION: Adds Copy text to context menu for Spotify v1.1.59 and Spicetify v2.0.0 and above
 
 /// <reference path="globals.d.ts" />
@@ -83,6 +83,15 @@ function initCopyText() {
           ).header.showMetadata.name,
         );
         break;
+      case Type.EPISODE:
+        sendToClipboard(
+          (
+            await Spicetify.Platform.ShowAPI.getEpisodeOrChapter(
+              `spotify:episode:${id}`
+            )
+          ).name,
+        );
+        break;
       case Type.PROFILE:
         sendToClipboard(
           (await Spicetify.CosmosAsync.get("sp://core-profile/v1/profiles", { usernames: uri.username })).profiles[0].name
@@ -136,6 +145,7 @@ function initCopyText() {
         case Type.PLAYLIST:
         case Type.PLAYLIST_V2:
         case Type.SHOW:
+        case Type.EPISODE:
         case Type.PROFILE:
         case Type.FOLDER:
           return true;
@@ -171,6 +181,6 @@ function initCopyText() {
     'Copy Song & Artist names',
     getSongArtistText,
     shouldAddCSAContextMenu,
-    'copy',
+    'artist',
   ).register();
 }
