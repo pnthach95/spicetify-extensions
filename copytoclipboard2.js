@@ -14,10 +14,37 @@ let copyTextCount = 0;
   initCopyText();
 })();
 
-function initCopyText() {
-  const {Type} = Spicetify.URI;
+async function fetchAlbum(uri) {
+  const {getAlbum} = Spicetify.GraphQL.Definitions;
+  try {
+    const {data} = await Spicetify.GraphQL.Request(getAlbum, {
+      uri,
+      offset: 0,
+      limit: 10,
+    });
+    return data.albumUnion.name;
+  } catch {
+    return null;
+  }
+}
 
+async function fetchArtist(uri) {
+  const {queryArtistMinimal} = Spicetify.GraphQL.Definitions;
+  try {
+    const {data} = await Spicetify.GraphQL.Request(queryArtistMinimal, {
+      uri,
+      offset: 0,
+      limit: 10,
+    });
+    return data.artistUnion.profile.name;
+  } catch {
+    return null;
+  }
+}
+
+function initCopyText() {
   async function getText(uris) {
+    const {Type} = Spicetify.URI;
     const uri = Spicetify.URI.fromString(uris[0]);
     const id = uri._base62Id ? uri._base62Id : uri.id;
 
@@ -33,36 +60,22 @@ function initCopyText() {
         break;
       case Type.LOCAL:
         sendToClipboard(
-          `${uri.track ? uri.track : ""}${uri.artist ? " by " + uri.artist : ""}${uri.album ? " from " + uri.album : ""}`
+          `${uri.track ? uri.track : ''}${
+            uri.artist ? ' by ' + uri.artist : ''
+          }${uri.album ? ' from ' + uri.album : ''}`,
         );
         break;
       case Type.LOCAL_ARTIST:
-        sendToClipboard(
-          `${uri.artist ? uri.artist : ""}`
-        );
+        sendToClipboard(`${uri.artist ? uri.artist : ''}`);
         break;
       case Type.LOCAL_ALBUM:
-        sendToClipboard(
-          `${uri.album ? uri.album : ""}`
-        );
+        sendToClipboard(`${uri.album ? uri.album : ''}`);
         break;
       case Type.ALBUM:
-        sendToClipboard(
-          (
-            await Spicetify.CosmosAsync.get(
-              `wg://album/v1/album-app/album/${id}/desktop`,
-            )
-          ).name,
-        );
+        sendToClipboard(await fetchAlbum(uri.toURI()));
         break;
       case Type.ARTIST:
-        sendToClipboard(
-          (
-            await Spicetify.CosmosAsync.get(
-              `wg://artist/v1/${id}/desktop?format=json`,
-            )
-          ).info.name,
-        );
+        sendToClipboard(await fetchArtist(uri.toURI()));
         break;
       case Type.PLAYLIST:
       case Type.PLAYLIST_V2:
@@ -87,19 +100,25 @@ function initCopyText() {
         sendToClipboard(
           (
             await Spicetify.Platform.ShowAPI.getEpisodeOrChapter(
-              `spotify:episode:${id}`
+              `spotify:episode:${id}`,
             )
           ).name,
         );
         break;
       case Type.PROFILE:
         sendToClipboard(
-          (await Spicetify.CosmosAsync.get("sp://core-profile/v1/profiles", { usernames: uri.username })).profiles[0].name
+          (
+            await Spicetify.CosmosAsync.get('sp://core-profile/v1/profiles', {
+              usernames: uri.username,
+            })
+          ).profiles[0].name,
         );
         break;
       case Type.FOLDER:
         let rootlist = await Spicetify.Platform.RootlistAPI.getContents();
-        let folder = rootlist.items.filter((item) => item.type == "folder" && item.uri.includes(id));
+        let folder = rootlist.items.filter(
+          item => item.type == 'folder' && item.uri.includes(id),
+        );
         sendToClipboard(folder[0].name);
         break;
       default:
@@ -108,6 +127,7 @@ function initCopyText() {
   }
 
   async function getSongArtistText(uris) {
+    const {Type} = Spicetify.URI;
     const uri = Spicetify.URI.fromString(uris[0]);
     const id = uri._base62Id ? uri._base62Id : uri.id;
 
@@ -134,6 +154,7 @@ function initCopyText() {
 
   function shouldAddContextMenu(uris) {
     if (uris.length === 1) {
+      const {Type} = Spicetify.URI;
       const uri = Spicetify.URI.fromString(uris[0]);
       switch (uri.type) {
         case Type.TRACK:
@@ -159,6 +180,7 @@ function initCopyText() {
 
   function shouldAddCSAContextMenu(uris) {
     if (uris.length === 1) {
+      const {Type} = Spicetify.URI;
       const uri = Spicetify.URI.fromString(uris[0]);
       switch (uri.type) {
         case Type.TRACK:
