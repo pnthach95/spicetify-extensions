@@ -19,6 +19,7 @@ async function fetchAlbum(uri) {
   try {
     const {data} = await Spicetify.GraphQL.Request(getAlbum, {
       uri,
+      locale: Spicetify.Locale.getLocale(),
       offset: 0,
       limit: 10,
     });
