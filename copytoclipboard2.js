@@ -4,6 +4,19 @@
 
 /// <reference path="globals.d.ts" />
 
+const localizations = {
+  ru: {
+    text: 'Скопировать текст',
+    songAndArtist: 'Cкопировать трек и артиста',
+    copied: 'Скопировано',
+  },
+  en: {
+    text: 'Copy Text',
+    songAndArtist: 'Copy Song & Artist names',
+    copied: 'Copied',
+  },
+};
+
 let copyTextCount = 0;
 (async function copyText() {
   if (!Spicetify && copyTextCount < 1000) {
@@ -11,8 +24,15 @@ let copyTextCount = 0;
     copyTextCount++;
     return;
   }
-  initCopyText();
+  window.addEventListener('load', initCopyText);
 })();
+
+function getLocalization() {
+  const spotifyLocale = Spicetify.Locale.getLocale();
+  return Object.keys(localizations).includes(spotifyLocale)
+    ? localizations[spotifyLocale]
+    : 'en';
+}
 
 async function fetchAlbum(uri) {
   const {getAlbum} = Spicetify.GraphQL.Definitions;
@@ -61,9 +81,9 @@ function initCopyText() {
         break;
       case Type.LOCAL:
         sendToClipboard(
-          `${uri.track ? uri.track : ''}${
-            uri.artist ? ' by ' + uri.artist : ''
-          }${uri.album ? ' from ' + uri.album : ''}`,
+          `${uri.track ? uri.track : ''}${uri.artist ? ' ' + uri.artist : ''}${
+            uri.album ? ' ' + uri.album : ''
+          }`,
         );
         break;
       case Type.LOCAL_ARTIST:
@@ -138,7 +158,7 @@ function initCopyText() {
           `https://api.spotify.com/v1/tracks/${id}`,
         );
         sendToClipboard(
-          res.name + ' by ' + res.artists.map(a => a.name).join(', '),
+          res.name + '; ' + res.artists.map(a => a.name).join(', '),
         );
         break;
       default:
@@ -148,7 +168,7 @@ function initCopyText() {
 
   function sendToClipboard(text) {
     if (text) {
-      Spicetify.showNotification(`copied : ${text}`);
+      Spicetify.showNotification(`${localization.copied}: ${text}`);
       Spicetify.Platform.ClipboardAPI.copy(text);
     }
   }
@@ -194,14 +214,16 @@ function initCopyText() {
     }
   }
 
+  const localization = getLocalization();
+
   new Spicetify.ContextMenu.Item(
-    'Copy Text',
+    localization.text,
     getText,
     shouldAddContextMenu,
     'copy',
   ).register();
   new Spicetify.ContextMenu.Item(
-    'Copy Song & Artist names',
+    localization.songAndArtist,
     getSongArtistText,
     shouldAddCSAContextMenu,
     'artist',
