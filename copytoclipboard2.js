@@ -80,11 +80,17 @@ function initCopyText() {
         );
         break;
       case Type.LOCAL:
-        sendToClipboard(
-          `${uri.track ? uri.track : ''}${uri.artist ? ' ' + uri.artist : ''}${
-            uri.album ? ' ' + uri.album : ''
-          }`,
-        );
+        const tmp = [];
+        if (uri.track) {
+          tmp.push(uri.track);
+        }
+        if (uri.artist) {
+          tmp.push(uri.artist);
+        }
+        if (uri.album) {
+          tmp.push(uri.album);
+        }
+        sendToClipboard(tmp.join('; '));
         break;
       case Type.LOCAL_ARTIST:
         sendToClipboard(`${uri.artist ? uri.artist : ''}`);
