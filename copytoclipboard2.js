@@ -17,14 +17,12 @@ const localizations = {
   },
 };
 
-let copyTextCount = 0;
 (async function copyText() {
-  if (!Spicetify && copyTextCount < 1000) {
-    setTimeout(copyText, 10);
-    copyTextCount++;
+  if (!Spicetify || document.readyState !== 'complete') {
+    setTimeout(copyText, 100);
     return;
   }
-  window.addEventListener('load', initCopyText);
+  initCopyText();
 })();
 
 function getLocalization() {
