@@ -29,7 +29,7 @@ function getLocalization() {
   const spotifyLocale = Spicetify.Locale.getLocale();
   return Object.keys(localizations).includes(spotifyLocale)
     ? localizations[spotifyLocale]
-    : 'en';
+    : localizations['en'];
 }
 
 async function fetchAlbum(uri) {
