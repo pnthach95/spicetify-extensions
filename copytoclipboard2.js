@@ -26,7 +26,7 @@ const localizations = {
 })();
 
 function getLocalization() {
-  const spotifyLocale = Spicetify.Locale.getLocale();
+  const spotifyLocale = Spicetify.Locale ? Spicetify.Locale.getLocale() : 'en';
   return Object.keys(localizations).includes(spotifyLocale)
     ? localizations[spotifyLocale]
     : localizations['en'];
@@ -37,7 +37,7 @@ async function fetchAlbum(uri) {
   try {
     const {data} = await Spicetify.GraphQL.Request(getAlbum, {
       uri,
-      locale: Spicetify.Locale.getLocale(),
+      locale: Spicetify.Locale ? Spicetify.Locale.getLocale() : 'en',
       offset: 0,
       limit: 10,
     });
