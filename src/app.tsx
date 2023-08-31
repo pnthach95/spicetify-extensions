@@ -161,7 +161,7 @@ function initCopyText() {
       const {Type} = Spicetify.URI;
       const uri = Spicetify.URI.fromString(uris[0]);
       // @ts-ignore _base62Id may be existed on old versions
-      const id = uri._base62Id ? uri._base62Id : uri.id;
+      const id: string = uri._base62Id ? uri._base62Id : uri.id;
 
       switch (uri.type) {
         case Type.TRACK:
