@@ -6,11 +6,17 @@ Spicetify extension which allows you to copy text (song name, artist name, album
 
 ![Screenshot](screenshot.png)
 
+## Download from Marketplace
+
+<div align=center>
+  <img src="./marketplace.png" width=200px />
+</div>
+
+## Manual Installation
+
+Download [copytoclipboard.js](./dist/copytoclipboard.js) in `dist` folder and follow this [guide](https://spicetify.app/docs/advanced-usage/extensions#installing).
+
 ## Note
-
-Use `copytoclipboard.js` for Spotify <v1.1.59 and Spicetify <v2.0.0.
-
-Use `copytoclipboard2.js` for Spotify ≥v1.1.59 and Spicetify ≥v2.0.0. Uninstall old version before installing this version.
 
 Some text can't copy, it shows error like this:
 
