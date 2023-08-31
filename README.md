@@ -14,7 +14,7 @@ Spicetify extension which allows you to copy text (song name, artist name, album
 
 ## Manual Installation
 
-Download file [copytoclipboard.js](./dist/copytoclipboard.js) in `dist` folder and follow this [guide](https://spicetify.app/docs/advanced-usage/extensions#installing).
+Download [copytoclipboard.js](./dist/copytoclipboard.js) in `dist` folder and follow this [guide](https://spicetify.app/docs/advanced-usage/extensions#installing).
 
 ## Note
 
