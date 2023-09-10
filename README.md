@@ -22,4 +22,4 @@ Some text can't copy, it shows error like this:
 
 ![error](error.png)
 
-If you installed from marketplace and it suddenly isn't working, reinstall it (#16)
+If you installed from marketplace and it suddenly isn't working, reinstall it (https://github.com/pnthach95/spicetify-extensions/issues/16)
