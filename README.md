@@ -21,3 +21,5 @@ Download [copytoclipboard.js](./dist/copytoclipboard.js) in `dist` folder and fo
 Some text can't copy, it shows error like this:
 
 ![error](error.png)
+
+If you installed from marketplace and it suddenly isn't working, reinstall it (#16)
