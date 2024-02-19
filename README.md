@@ -18,8 +18,6 @@ Download [copytoclipboard.js](./dist/copytoclipboard.js) in `dist` folder and fo
 
 ## Note
 
-Some text can't copy, it shows error like this:
-
-![error](error.png)
-
 If you installed from marketplace and it suddenly isn't working, reinstall it (https://github.com/pnthach95/spicetify-extensions/issues/16)
+
+Spotify is changing their APIs, some texts can be copied. If you encounter any errors, please report with link to the item you want to copy.

@@ -5,11 +5,26 @@
 type RootlistContent = {
   items: {type: string; uri: string[]; name: string}[];
 };
-type CosmosTrackData = {
-  name: string;
-  artists: {name: string}[];
+type GetTrackNameData = {
+  trackUnion: {
+    name: string;
+  };
+};
+type QueryTrackArtistsData = {
+  trackUnion: {
+    artists: {
+      items: {
+        profile: {
+          name: string;
+        };
+        uri: `spotify:artist:${string}`;
+      }[];
+    };
+    uri: `spotify:track:${string}`;
+  };
 };
 type Localization = {
+  error: string;
   text: string;
   songAndArtist: string;
   copied: string;
@@ -17,11 +32,13 @@ type Localization = {
 
 const localizations: Record<string, Localization> = {
   ru: {
+    error: 'Ошибка',
     text: 'Скопировать текст',
     songAndArtist: 'Cкопировать трек и артиста',
     copied: 'Скопировано',
   },
   en: {
+    error: 'Error',
     text: 'Copy Text',
     songAndArtist: 'Copy Song & Artist names',
     copied: 'Copied',
@@ -45,8 +62,9 @@ async function fetchAlbum(uri: string) {
       limit: 10,
     });
     return data.albumUnion.name as string;
-  } catch {
-    return null;
+  } catch (e) {
+    console.log(e);
+    throw new Error((e as Error).message);
   }
 }
 
@@ -59,8 +77,39 @@ async function fetchArtist(uri: string) {
       limit: 10,
     });
     return data.artistUnion.profile.name as string;
-  } catch {
-    return null;
+  } catch (e) {
+    console.log(e);
+    throw new Error((e as Error).message);
+  }
+}
+
+async function fetchArtists(uri: string) {
+  const {queryTrackArtists} = Spicetify.GraphQL.Definitions;
+  try {
+    const {data} = (await Spicetify.GraphQL.Request(queryTrackArtists, {
+      uri,
+      offset: 0,
+      limit: 10,
+    })) as {data: QueryTrackArtistsData};
+    return data.trackUnion.artists.items.map(i => i.profile.name).join(', ');
+  } catch (e) {
+    console.log(e);
+    throw new Error((e as Error).message);
+  }
+}
+
+async function fetchTrackName(uri: string) {
+  const {getTrackName} = Spicetify.GraphQL.Definitions;
+  try {
+    const {data} = (await Spicetify.GraphQL.Request(getTrackName, {
+      uri,
+      offset: 0,
+      limit: 10,
+    })) as {data: GetTrackNameData};
+    return data.trackUnion.name;
+  } catch (e) {
+    console.log(e);
+    throw new Error((e as Error).message);
   }
 }
 
@@ -71,88 +120,88 @@ function initCopyText() {
     // @ts-ignore _base62Id may be existed on old versions
     const id: string = uri._base62Id ? uri._base62Id : uri.id;
 
-    switch (uri.type) {
-      case Type.TRACK:
-        sendToClipboard(
-          (
-            await Spicetify.CosmosAsync.get(
-              `https://api.spotify.com/v1/tracks/${id}`,
-            )
-          ).name as string,
-        );
-        break;
-      case Type.LOCAL:
-        const tmp: string[] = [];
-        if (uri.track) {
-          tmp.push(uri.track);
-        }
-        if (uri.artist) {
-          tmp.push(uri.artist);
-        }
-        if (uri.album) {
-          tmp.push(uri.album);
-        }
-        sendToClipboard(tmp.join('; '));
-        break;
-      case Type.LOCAL_ARTIST:
-        sendToClipboard(`${uri.artist ? uri.artist : ''}`);
-        break;
-      case Type.LOCAL_ALBUM:
-        sendToClipboard(`${uri.album ? uri.album : ''}`);
-        break;
-      case Type.ALBUM:
-        sendToClipboard(await fetchAlbum(uri.toURI()));
-        break;
-      case Type.ARTIST:
-        sendToClipboard(await fetchArtist(uri.toURI()));
-        break;
-      case Type.PLAYLIST:
-      case Type.PLAYLIST_V2:
-        sendToClipboard(
-          (
-            await Spicetify.CosmosAsync.get(
-              `sp://core-playlist/v1/playlist/spotify:playlist:${id}`,
-            )
-          ).playlist.name,
-        );
-        break;
-      case Type.SHOW:
-        sendToClipboard(
-          (
-            await Spicetify.CosmosAsync.get(
-              `sp://core-show/v1/shows/${id}?responseFormat=protobufJson`,
-            )
-          ).header.showMetadata.name,
-        );
-        break;
-      case Type.EPISODE:
-        sendToClipboard(
-          (
-            await Spicetify.Platform.ShowAPI.getEpisodeOrChapter(
-              `spotify:episode:${id}`,
-            )
-          ).name,
-        );
-        break;
-      case Type.PROFILE:
-        sendToClipboard(
-          (
-            await Spicetify.CosmosAsync.get('sp://core-profile/v1/profiles', {
-              usernames: uri.username,
-            })
-          ).profiles[0].name,
-        );
-        break;
-      case Type.FOLDER:
-        let rootlist: RootlistContent =
-          await Spicetify.Platform.RootlistAPI.getContents();
-        let folder = rootlist.items.filter(
-          item => item.type === 'folder' && item.uri.includes(id),
-        );
-        sendToClipboard(folder[0].name);
-        break;
-      default:
-        break;
+    try {
+      switch (uri.type) {
+        case Type.TRACK:
+          sendToClipboard(await fetchTrackName(uri.toURI()));
+          break;
+        case Type.LOCAL:
+          const tmp: string[] = [];
+          if (uri.track) {
+            tmp.push(uri.track);
+          }
+          if (uri.artist) {
+            tmp.push(uri.artist);
+          }
+          if (uri.album) {
+            tmp.push(uri.album);
+          }
+          sendToClipboard(tmp.join('; '));
+          break;
+        case Type.LOCAL_ARTIST:
+          sendToClipboard(`${uri.artist ? uri.artist : ''}`);
+          break;
+        case Type.LOCAL_ALBUM:
+          sendToClipboard(`${uri.album ? uri.album : ''}`);
+          break;
+        case Type.ALBUM:
+          sendToClipboard(await fetchAlbum(uri.toURI()));
+          break;
+        case Type.ARTIST:
+          sendToClipboard(await fetchArtist(uri.toURI()));
+          break;
+        case Type.PLAYLIST:
+        case Type.PLAYLIST_V2:
+          sendToClipboard(
+            (
+              await Spicetify.CosmosAsync.get(
+                `sp://core-playlist/v1/playlist/spotify:playlist:${id}`,
+              )
+            ).playlist.name,
+          );
+          break;
+        case Type.SHOW:
+          sendToClipboard(
+            (
+              await Spicetify.CosmosAsync.get(
+                `sp://core-show/v1/shows/${id}?responseFormat=protobufJson`,
+              )
+            ).header.showMetadata.name,
+          );
+          break;
+        case Type.EPISODE:
+          sendToClipboard(
+            (
+              await Spicetify.Platform.ShowAPI.getEpisodeOrChapter(
+                `spotify:episode:${id}`,
+              )
+            ).name,
+          );
+          break;
+        case Type.PROFILE:
+          sendToClipboard(
+            (
+              await Spicetify.CosmosAsync.get('sp://core-profile/v1/profiles', {
+                usernames: uri.username,
+              })
+            ).profiles[0].name,
+          );
+          break;
+        case Type.FOLDER:
+          let rootlist: RootlistContent =
+            await Spicetify.Platform.RootlistAPI.getContents();
+          let folder = rootlist.items.filter(
+            item => item.type === 'folder' && item.uri.includes(id),
+          );
+          sendToClipboard(folder[0].name);
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      Spicetify.showNotification(
+        `${localization.error}: ${(error as Error).message}`,
+      );
     }
   };
 
@@ -160,20 +209,25 @@ function initCopyText() {
     async uris => {
       const {Type} = Spicetify.URI;
       const uri = Spicetify.URI.fromString(uris[0]);
-      // @ts-ignore _base62Id may be existed on old versions
-      const id: string = uri._base62Id ? uri._base62Id : uri.id;
 
-      switch (uri.type) {
-        case Type.TRACK:
-          const res: CosmosTrackData = await Spicetify.CosmosAsync.get(
-            `https://api.spotify.com/v1/tracks/${id}`,
-          );
-          sendToClipboard(
-            res.name + '; ' + res.artists.map(a => a.name).join(', '),
-          );
-          break;
-        default:
-          break;
+      try {
+        switch (uri.type) {
+          case Type.TRACK:
+            const [name, artists] = await Promise.allSettled([
+              fetchTrackName(uri.toURI()),
+              fetchArtists(uri.toURI()),
+            ]);
+            if (name.status === 'fulfilled' && artists.status === 'fulfilled') {
+              sendToClipboard(name.value + '; ' + artists.value);
+            }
+            break;
+          default:
+            break;
+        }
+      } catch (error) {
+        Spicetify.showNotification(
+          `${localization.error}: ${(error as Error).message}`,
+        );
       }
     };
 
