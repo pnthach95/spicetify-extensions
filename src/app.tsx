@@ -52,16 +52,12 @@ function getLocalization() {
     : localizations['en'];
 }
 
-async function fetchAlbum(uri: string) {
-  const {getAlbum} = Spicetify.GraphQL.Definitions;
+async function fetchAlbum(id?: string) {
   try {
-    const {data} = await Spicetify.GraphQL.Request(getAlbum, {
-      uri,
-      locale: Spicetify.Locale ? Spicetify.Locale.getLocale() : 'en',
-      offset: 0,
-      limit: 10,
-    });
-    return data.albumUnion.name as string;
+    const albumInfo: AlbumInfo = await Spicetify.CosmosAsync.get(
+      `https://api.spotify.com/v1/albums/${id}`,
+    );
+    return albumInfo.name;
   } catch (e) {
     console.log(e);
     throw new Error((e as Error).message);
@@ -145,7 +141,7 @@ function initCopyText() {
           sendToClipboard(`${uri.album ? uri.album : ''}`);
           break;
         case Type.ALBUM:
-          sendToClipboard(await fetchAlbum(uri.toURI()));
+          sendToClipboard(await fetchAlbum(uri.id));
           break;
         case Type.ARTIST:
           sendToClipboard(await fetchArtist(uri.toURI()));
