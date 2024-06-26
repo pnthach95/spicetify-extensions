@@ -95,3 +95,38 @@ interface AlbumInfo {
   label: string;
   popularity: number;
 }
+
+type RootlistContent = {
+  items: {type: string; uri: string[]; name: string}[];
+};
+
+type GetTrackNameData = {
+  trackUnion: {
+    name: string;
+  };
+};
+
+type QueryTrackArtistsData = {
+  trackUnion: {
+    artists: {
+      items: {
+        profile: {
+          name: string;
+        };
+        uri: `spotify:artist:${string}`;
+      }[];
+    };
+    uri: `spotify:track:${string}`;
+  };
+};
+
+type Localization = {
+  error: string;
+  text: string;
+  songAndArtist: string;
+  copied: string;
+  settings: {
+    name: string;
+    separator: string;
+  };
+};

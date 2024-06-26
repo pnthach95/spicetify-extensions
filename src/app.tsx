@@ -2,32 +2,16 @@
 // AUTHOR: pnthach95, Tetrax-10
 // DESCRIPTION: Adds Copy text to context menu for Spotify v1.1.59 and Spicetify v2.0.0 and above
 
-type RootlistContent = {
-  items: {type: string; uri: string[]; name: string}[];
-};
-type GetTrackNameData = {
-  trackUnion: {
-    name: string;
-  };
-};
-type QueryTrackArtistsData = {
-  trackUnion: {
-    artists: {
-      items: {
-        profile: {
-          name: string;
-        };
-        uri: `spotify:artist:${string}`;
-      }[];
-    };
-    uri: `spotify:track:${string}`;
-  };
-};
-type Localization = {
-  error: string;
-  text: string;
-  songAndArtist: string;
-  copied: string;
+import {SettingsSection} from 'spcr-settings';
+
+const SETTINGS = {
+  ID: 'settings-copy-to-clipboard',
+  NAME: 'Copy to clipboard settings',
+  SEPARATOR: {
+    KEY: 'ctc-separator',
+    DESCRIPTION: 'Separator between Song name and Artist names',
+    DEFAULT: '; ',
+  },
 };
 
 const localizations: Record<string, Localization> = {
@@ -36,19 +20,41 @@ const localizations: Record<string, Localization> = {
     text: 'Скопировать текст',
     songAndArtist: 'Cкопировать трек и артиста',
     copied: 'Скопировано',
+    settings: {
+      name: 'Copy to clipboard settings',
+      separator: 'Separator between Song name and Artist names',
+    },
   },
   en: {
     error: 'Error',
     text: 'Copy Text',
     songAndArtist: 'Copy Song & Artist names',
     copied: 'Copied',
+    settings: {
+      name: SETTINGS.NAME,
+      separator: SETTINGS.SEPARATOR.DESCRIPTION,
+    },
+  },
+  vi: {
+    copied: 'Đã sao chép',
+    error: 'Lỗi',
+    settings: {
+      name: 'Cài đặt Copy to clipboard',
+      separator: 'Phân cách giữa tên bài hát và tên nghệ sĩ',
+    },
+    songAndArtist: 'Sao chép tên bài hát & nghệ sĩ',
+    text: 'Sao chép tên',
   },
 };
 
-function getLocalization() {
-  const spotifyLocale = Spicetify.Locale ? Spicetify.Locale.getLocale() : 'en';
-  return Object.keys(localizations).includes(spotifyLocale)
-    ? localizations[spotifyLocale as keyof typeof localizations]
+async function getLocalization() {
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  const locale = Spicetify.Locale ? Spicetify.Locale.getLocale() : 'en';
+  // console.log('Spicetify.Locale._locale', Spicetify.Locale._locale);
+  // console.log('Spicetify.Locale.getLocale', Spicetify.Locale.getLocale());
+
+  return Object.keys(localizations).includes(locale)
+    ? localizations[locale as keyof typeof localizations]
     : localizations['en'];
 }
 
@@ -109,7 +115,7 @@ async function fetchTrackName(uri: string) {
   }
 }
 
-function initCopyText() {
+function initCopyText(localization: Localization) {
   const getText: Spicetify.ContextMenu.OnClickCallback = async uris => {
     const {Type} = Spicetify.URI;
     const uri = Spicetify.URI.fromString(uris[0]);
@@ -214,7 +220,12 @@ function initCopyText() {
               fetchArtists(uri.toURI()),
             ]);
             if (name.status === 'fulfilled' && artists.status === 'fulfilled') {
-              sendToClipboard(name.value + '; ' + artists.value);
+              const settings = new SettingsSection(SETTINGS.NAME, SETTINGS.ID);
+              sendToClipboard(
+                name.value +
+                  settings.getFieldValue(SETTINGS.SEPARATOR.KEY) +
+                  artists.value,
+              );
             }
             break;
           default:
@@ -277,8 +288,6 @@ function initCopyText() {
       }
     };
 
-  const localization = getLocalization();
-
   new Spicetify.ContextMenu.Item(
     localization.text,
     getText,
@@ -298,7 +307,16 @@ async function main() {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
-  initCopyText();
+  const localization = await getLocalization();
+  const settings = new SettingsSection(localization.settings.name, SETTINGS.ID);
+  settings.addInput(
+    SETTINGS.SEPARATOR.KEY,
+    localization.settings.separator,
+    SETTINGS.SEPARATOR.DEFAULT,
+  );
+  settings.pushSettings();
+
+  initCopyText(localization);
 }
 
 export default main;
