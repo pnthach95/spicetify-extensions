@@ -71,10 +71,13 @@ async function fetchAlbum(id?: string) {
 }
 
 async function fetchArtist(uri: string) {
-  const {queryArtistMinimal} = Spicetify.GraphQL.Definitions;
+  const {queryArtistOverview} = Spicetify.GraphQL.Definitions;
   try {
-    const {data} = await Spicetify.GraphQL.Request(queryArtistMinimal, {
+    const locale = Spicetify.Locale ? Spicetify.Locale.getLocale() : 'en';
+    const {data} = await Spicetify.GraphQL.Request(queryArtistOverview, {
       uri,
+      includePrerelease: false,
+      locale,
       offset: 0,
       limit: 10,
     });
