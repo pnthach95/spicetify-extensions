@@ -20,6 +20,7 @@ const localizations: Record<string, Localization> = {
     text: 'Скопировать текст',
     songAndArtist: 'Cкопировать трек и артиста',
     copied: 'Скопировано',
+    copyImage: 'Ссылка на изображение',
     settings: {
       name: 'Copy to clipboard settings',
       separator: 'Separator between Song name and Artist names',
@@ -30,6 +31,7 @@ const localizations: Record<string, Localization> = {
     text: 'Copy Text',
     songAndArtist: 'Copy Song & Artist names',
     copied: 'Copied',
+    copyImage: 'Copy image link',
     settings: {
       name: SETTINGS.NAME,
       separator: SETTINGS.SEPARATOR.DESCRIPTION,
@@ -37,6 +39,7 @@ const localizations: Record<string, Localization> = {
   },
   vi: {
     copied: 'Đã sao chép',
+    copyImage: 'Sao chép liên kết ảnh',
     error: 'Lỗi',
     settings: {
       name: 'Cài đặt Copy to clipboard',
@@ -58,11 +61,14 @@ async function getLocalization() {
     : localizations['en'];
 }
 
-async function fetchAlbum(id?: string) {
+async function fetchAlbum(dataType: DataType, id?: string) {
   try {
     const albumInfo: AlbumInfo = await Spicetify.CosmosAsync.get(
       `https://api.spotify.com/v1/albums/${id}`,
     );
+    if (dataType === 'image') {
+      return albumInfo.images[0].url;
+    }
     return albumInfo.name;
   } catch (e) {
     console.log(e);
@@ -70,7 +76,7 @@ async function fetchAlbum(id?: string) {
   }
 }
 
-async function fetchArtist(uri: string) {
+async function fetchArtist(dataType: DataType, uri: string) {
   const {queryArtistOverview} = Spicetify.GraphQL.Definitions;
   try {
     const locale = Spicetify.Locale ? Spicetify.Locale.getLocale() : 'en';
@@ -81,6 +87,14 @@ async function fetchArtist(uri: string) {
       offset: 0,
       limit: 10,
     });
+    if (dataType === 'image') {
+      const img = data.artistUnion.headerImage?.data?.sources?.[0]
+        ?.url as string;
+      if (img) {
+        return img;
+      }
+      throw new Error('No images');
+    }
     return data.artistUnion.profile.name as string;
   } catch (e) {
     console.log(e);
@@ -112,6 +126,93 @@ async function fetchTrackName(uri: string) {
       limit: 10,
     })) as {data: GetTrackNameData};
     return data.trackUnion.name;
+  } catch (e) {
+    console.log(e);
+    throw new Error((e as Error).message);
+  }
+}
+
+function getLinkFromUri(uri: string) {
+  if (uri.includes('mosaic:')) {
+    throw new Error('Cannot copy mosaic image');
+  }
+  if (uri.startsWith('spotify')) {
+    const pictureUri = uri.split(':').pop();
+    if (pictureUri) {
+      return 'https://i.scdn.co/image/' + pictureUri;
+    } else {
+      throw new Error('Not found');
+    }
+  } else {
+    return uri;
+  }
+}
+
+async function fetchPlaylist(dataType: DataType, id: string) {
+  try {
+    const res = await Spicetify.CosmosAsync.get(
+      `sp://core-playlist/v1/playlist/spotify:playlist:${id}`,
+    );
+    if (dataType === 'name') {
+      return res.playlist.name;
+    }
+    return getLinkFromUri(res.playlist.picture);
+  } catch (e) {
+    console.log(e);
+    throw new Error((e as Error).message);
+  }
+}
+
+async function fetchShow(dataType: DataType, id: string) {
+  try {
+    const data = await Spicetify.CosmosAsync.get(
+      `sp://core-show/v1/shows/${id}?responseFormat=protobufJson`,
+    );
+    if (dataType === 'name') {
+      return data.header.showMetadata.name;
+    }
+    return getLinkFromUri(data.header.showMetadata.covers.xlargeLink);
+  } catch (e) {
+    console.log(e);
+    throw new Error((e as Error).message);
+  }
+}
+
+async function fetchEpisode(dataType: DataType, id: string) {
+  try {
+    const data = await Spicetify.Platform.ShowAPI.getEpisodeOrChapter(
+      `spotify:episode:${id}`,
+    );
+    if (dataType === 'name') {
+      return data.name;
+    }
+    return getLinkFromUri(
+      data.coverArt.reduce(
+        (res: SpotifyImage, curr: SpotifyImage) =>
+          res.width > curr.width ? res : curr,
+        {width: 0, height: 0, url: ''},
+      ).url,
+    );
+  } catch (e) {
+    console.log(e);
+    throw new Error((e as Error).message);
+  }
+}
+
+async function fetchProfile(dataType: DataType, username?: string) {
+  try {
+    const res = await Spicetify.CosmosAsync.get(
+      'sp://core-profile/v1/profiles',
+      {usernames: username},
+    );
+    if (dataType === 'name') {
+      return res.profiles[0].name;
+    }
+    return res.profiles[0].images.reduce(
+      (res: SpotifyImageMax, curr: SpotifyImageMax) =>
+        res.maxWidth > curr.maxWidth ? res : curr,
+      {maxWidth: 0, maxHeight: 0, url: ''},
+    ).url;
   } catch (e) {
     console.log(e);
     throw new Error((e as Error).message);
@@ -150,47 +251,23 @@ function initCopyText(localization: Localization) {
           sendToClipboard(`${uri.album ? uri.album : ''}`);
           break;
         case Type.ALBUM:
-          sendToClipboard(await fetchAlbum(uri.id));
+          sendToClipboard(await fetchAlbum('name', uri.id));
           break;
         case Type.ARTIST:
-          sendToClipboard(await fetchArtist(uri.toURI()));
+          sendToClipboard(await fetchArtist('name', uri.toURI()));
           break;
         case Type.PLAYLIST:
         case Type.PLAYLIST_V2:
-          sendToClipboard(
-            (
-              await Spicetify.CosmosAsync.get(
-                `sp://core-playlist/v1/playlist/spotify:playlist:${id}`,
-              )
-            ).playlist.name,
-          );
+          sendToClipboard(await fetchPlaylist('name', id));
           break;
         case Type.SHOW:
-          sendToClipboard(
-            (
-              await Spicetify.CosmosAsync.get(
-                `sp://core-show/v1/shows/${id}?responseFormat=protobufJson`,
-              )
-            ).header.showMetadata.name,
-          );
+          sendToClipboard(await fetchShow('name', id));
           break;
         case Type.EPISODE:
-          sendToClipboard(
-            (
-              await Spicetify.Platform.ShowAPI.getEpisodeOrChapter(
-                `spotify:episode:${id}`,
-              )
-            ).name,
-          );
+          sendToClipboard(await fetchEpisode('name', id));
           break;
         case Type.PROFILE:
-          sendToClipboard(
-            (
-              await Spicetify.CosmosAsync.get('sp://core-profile/v1/profiles', {
-                usernames: uri.username,
-              })
-            ).profiles[0].name,
-          );
+          sendToClipboard(await fetchProfile('name', uri.username));
           break;
         case Type.FOLDER:
           let rootlist: RootlistContent =
@@ -199,6 +276,46 @@ function initCopyText(localization: Localization) {
             item => item.type === 'folder' && item.uri.includes(id),
           );
           sendToClipboard(folder[0].name);
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      Spicetify.showNotification(
+        `${localization.error}: ${(error as Error).message}`,
+      );
+    }
+  };
+
+  const getImage: Spicetify.ContextMenu.OnClickCallback = async uris => {
+    const {Type} = Spicetify.URI;
+    const uri = Spicetify.URI.fromString(uris[0]);
+    // @ts-ignore _base62Id may be existed on old versions
+    const id: string = uri._base62Id ? uri._base62Id : uri.id;
+
+    try {
+      switch (uri.type) {
+        case Type.TRACK:
+          sendToClipboard(await fetchTrackName(uri.toURI()));
+          break;
+        case Type.ALBUM:
+          sendToClipboard(await fetchAlbum('image', uri.id));
+          break;
+        case Type.ARTIST:
+          sendToClipboard(await fetchArtist('image', uri.toURI()));
+          break;
+        case Type.PLAYLIST:
+        case Type.PLAYLIST_V2:
+          sendToClipboard(await fetchPlaylist('image', id));
+          break;
+        case Type.SHOW:
+          sendToClipboard(await fetchShow('image', id));
+          break;
+        case Type.EPISODE:
+          sendToClipboard(await fetchEpisode('image', id));
+          break;
+        case Type.PROFILE:
+          sendToClipboard(await fetchProfile('image', uri.username));
           break;
         default:
           break;
@@ -291,6 +408,28 @@ function initCopyText(localization: Localization) {
       }
     };
 
+  const shouldAddCopyImageContextMenu: Spicetify.ContextMenu.ShouldAddCallback =
+    uris => {
+      if (uris.length === 1) {
+        const {Type} = Spicetify.URI;
+        const uri = Spicetify.URI.fromString(uris[0]);
+        switch (uri.type) {
+          case Type.ALBUM:
+          case Type.ARTIST:
+          case Type.PLAYLIST:
+          case Type.PLAYLIST_V2:
+          case Type.SHOW:
+          case Type.EPISODE:
+          case Type.PROFILE:
+            return true;
+          default:
+            return false;
+        }
+      } else {
+        return false;
+      }
+    };
+
   new Spicetify.ContextMenu.Item(
     localization.text,
     getText,
@@ -302,6 +441,12 @@ function initCopyText(localization: Localization) {
     getSongArtistText,
     shouldAddCSAContextMenu,
     'artist',
+  ).register();
+  new Spicetify.ContextMenu.Item(
+    localization.copyImage,
+    getImage,
+    shouldAddCopyImageContextMenu,
+    'copy',
   ).register();
 }
 

@@ -124,9 +124,24 @@ type Localization = {
   error: string;
   text: string;
   songAndArtist: string;
+  copyImage: string;
   copied: string;
   settings: {
     name: string;
     separator: string;
   };
+};
+
+type DataType = 'name' | 'image';
+
+type SpotifyImageMax = {
+  maxWidth: number;
+  maxHeight: number;
+  url: string;
+};
+
+type SpotifyImage = {
+  width: number;
+  height: number;
+  url: string;
 };
