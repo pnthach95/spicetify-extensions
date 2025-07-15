@@ -120,6 +120,20 @@ interface AlbumUnion {
   uri: string;
 }
 
+interface ArtistDiscography {
+  releases: {
+    items: {
+      coverArt: {sources: Image[]};
+      date: {isoString: string; precision: string; year: number};
+      id: string;
+      name: string;
+      tracks: {totalCount: number};
+      type: string;
+      uri: string;
+    }[];
+  };
+}
+
 type RootlistContent = {
   items: {type: string; uri: string[]; name: string}[];
 };

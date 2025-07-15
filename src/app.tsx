@@ -271,7 +271,7 @@ async function exportCSV({data, suggestedName}: ExportCSV) {
   }
 }
 
-async function fetchAlbumSongList(uri: string, offset = 0) {
+async function fetchAlbumSongList(uri: string) {
   try {
     const {getAlbum} = Spicetify.GraphQL.Definitions;
     const {
@@ -280,7 +280,7 @@ async function fetchAlbumSongList(uri: string, offset = 0) {
       uri,
       includePrerelease: false,
       locale: '',
-      offset,
+      offset: 0,
       limit: 50,
     })) as {data: {albumUnion: AlbumUnion}};
     const {
@@ -305,15 +305,104 @@ async function fetchAlbumSongList(uri: string, offset = 0) {
         artists: artists.items.map(i => i.profile.name).join('; '),
       });
     });
-    const suggestedName =
-      excludeSpecialChar(
-        `${albumName} by ${albumArtists.map(a => a.profile.name).join(', ')}`,
-      ) + '.csv';
-    await exportCSV({data: json2csv(data), suggestedName});
+    return {
+      data,
+      filename: `${albumName} by ${albumArtists.map(a => a.profile.name).join(', ')}`,
+    };
   } catch (e) {
     console.log(e);
     throw new Error((e as Error).message);
   }
+}
+
+async function fetchAlbumSongListAndExport(uri: string) {
+  const result = await fetchAlbumSongList(uri);
+  const suggestedName = excludeSpecialChar(result.filename) + '.csv';
+  await exportCSV({
+    data: json2csv(result.data, {excelBOM: true}),
+    suggestedName,
+  });
+}
+
+async function fetchArtistSongList(uri: string) {
+  const artistName = await fetchArtist('name', uri);
+  const {queryArtistDiscographyAll} = Spicetify.GraphQL.Definitions;
+  const albumUris: {
+    name: string;
+    releaseDate: string;
+    type: string;
+    uri: string;
+  }[] = [];
+  const limit = 50;
+  let offset = 0;
+  do {
+    const {
+      data: {
+        artistUnion: {
+          discography: {
+            all: {items: discographies},
+          },
+        },
+      },
+    } = (await Spicetify.GraphQL.Request(queryArtistDiscographyAll, {
+      uri,
+      order: 'DATE_DESC',
+      offset,
+      limit,
+    })) as {
+      data: {
+        artistUnion: {discography: {all: ItemsWithCount<ArtistDiscography>}};
+      };
+    };
+    discographies.forEach(d => {
+      d.releases.items.forEach(i => {
+        albumUris.push({
+          name: i.name,
+          releaseDate: i.date.isoString,
+          type: i.type,
+          uri: i.uri,
+        });
+      });
+    });
+    if (discographies.length < limit) {
+      break;
+    }
+    offset = albumUris.length;
+  } while (true);
+  type ArtistSongListItem = {
+    albumName: string;
+    discNumber: number;
+    trackNumber: number;
+    name: string;
+    artists: string;
+    type: string;
+    releaseDate: string;
+  };
+  const albumPromises = albumUris.map(async u => {
+    const result = await fetchAlbumSongList(u.uri);
+    return result.data.map<ArtistSongListItem>(d => ({
+      albumName: u.name,
+      discNumber: d.discNumber,
+      trackNumber: d.trackNumber,
+      name: d.name,
+      artists: d.artists,
+      type: u.type,
+      releaseDate: u.releaseDate,
+    }));
+  });
+  const albumSongListResult = await Promise.allSettled(albumPromises);
+  const data: ArtistSongListItem[] = [];
+  albumSongListResult.forEach(a => {
+    if (a.status === 'fulfilled') {
+      a.value.forEach(v => {
+        data.push(v);
+      });
+    }
+  });
+  await exportCSV({
+    data: json2csv(data, {excelBOM: true}),
+    suggestedName: excludeSpecialChar(artistName) + '.csv',
+  });
 }
 
 function initCopyText(localization: Localization) {
@@ -477,9 +566,10 @@ function initCopyText(localization: Localization) {
     try {
       switch (uri.type) {
         case Type.ALBUM:
-          await fetchAlbumSongList(uri.toURI());
+          await fetchAlbumSongListAndExport(uri.toURI());
           break;
         case Type.ARTIST:
+          await fetchArtistSongList(uri.toURI());
           break;
         case Type.PLAYLIST:
           break;
