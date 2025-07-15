@@ -16,30 +16,36 @@ const SETTINGS = {
 
 const localizations: Record<string, Localization> = {
   ru: {
-    error: 'Ошибка',
-    text: 'Скопировать текст',
-    songAndArtist: 'Cкопировать трек и артиста',
+    artistAndSong: 'Скопировать артиста и трек',
     copied: 'Скопировано',
     copyImage: 'Ссылка на изображение',
+    copyMore: 'Скопировать...',
+    error: 'Ошибка',
     settings: {
       name: 'Copy to clipboard settings',
       separator: 'Separator between Song name and Artist names',
     },
+    songAndArtist: 'Скопировать трек и артиста',
+    text: 'Скопировать текст',
   },
   en: {
-    error: 'Error',
-    text: 'Copy Text',
-    songAndArtist: 'Copy Song & Artist names',
+    artistAndSong: 'Copy Artist names & Song',
     copied: 'Copied',
     copyImage: 'Copy image link',
+    copyMore: 'Copy...',
+    error: 'Error',
     settings: {
       name: SETTINGS.NAME,
       separator: SETTINGS.SEPARATOR.DESCRIPTION,
     },
+    songAndArtist: 'Copy Song & Artist names',
+    text: 'Copy Text',
   },
   vi: {
+    artistAndSong: 'Sao chép tên nghệ sĩ & bài hát',
     copied: 'Đã sao chép',
     copyImage: 'Sao chép liên kết ảnh',
+    copyMore: 'Sao chép...',
     error: 'Lỗi',
     settings: {
       name: 'Cài đặt Copy to clipboard',
@@ -219,6 +225,21 @@ async function fetchProfile(dataType: DataType, username?: string) {
   }
 }
 
+async function fetchSongArtistText(
+  uri: string,
+): Promise<{texts: string[]; separator: string}> {
+  const [name, artists] = await Promise.allSettled([
+    fetchTrackName(uri),
+    fetchArtists(uri),
+  ]);
+  const settings = new SettingsSection(SETTINGS.NAME, SETTINGS.ID);
+  const separator = settings.getFieldValue<string>(SETTINGS.SEPARATOR.KEY);
+  if (name.status === 'fulfilled' && artists.status === 'fulfilled') {
+    return {texts: [name.value, artists.value], separator};
+  }
+  return {texts: [], separator};
+}
+
 function initCopyText(localization: Localization) {
   const getText: Spicetify.ContextMenu.OnClickCallback = async uris => {
     const {Type} = Spicetify.URI;
@@ -335,17 +356,32 @@ function initCopyText(localization: Localization) {
       try {
         switch (uri.type) {
           case Type.TRACK:
-            const [name, artists] = await Promise.allSettled([
-              fetchTrackName(uri.toURI()),
-              fetchArtists(uri.toURI()),
-            ]);
-            if (name.status === 'fulfilled' && artists.status === 'fulfilled') {
-              const settings = new SettingsSection(SETTINGS.NAME, SETTINGS.ID);
-              sendToClipboard(
-                name.value +
-                  settings.getFieldValue(SETTINGS.SEPARATOR.KEY) +
-                  artists.value,
-              );
+            const {separator, texts} = await fetchSongArtistText(uri.toURI());
+            if (texts.length > 0) {
+              sendToClipboard(texts[0] + separator + texts[1]);
+            }
+            break;
+          default:
+            break;
+        }
+      } catch (error) {
+        Spicetify.showNotification(
+          `${localization.error}: ${(error as Error).message}`,
+        );
+      }
+    };
+
+  const getArtistSongText: Spicetify.ContextMenu.OnClickCallback =
+    async uris => {
+      const {Type} = Spicetify.URI;
+      const uri = Spicetify.URI.fromString(uris[0]);
+
+      try {
+        switch (uri.type) {
+          case Type.TRACK:
+            const {separator, texts} = await fetchSongArtistText(uri.toURI());
+            if (texts.length > 0) {
+              sendToClipboard(texts[1] + separator + texts[0]);
             }
             break;
           default:
@@ -436,11 +472,23 @@ function initCopyText(localization: Localization) {
     shouldAddContextMenu,
     'copy',
   ).register();
-  new Spicetify.ContextMenu.Item(
-    localization.songAndArtist,
-    getSongArtistText,
-    shouldAddCSAContextMenu,
-    'artist',
+  new Spicetify.ContextMenu.SubMenu(
+    localization.copyMore,
+    [
+      new Spicetify.ContextMenu.Item(
+        localization.songAndArtist,
+        getSongArtistText,
+        shouldAddCSAContextMenu,
+        'artist',
+      ),
+      new Spicetify.ContextMenu.Item(
+        localization.artistAndSong,
+        getArtistSongText,
+        shouldAddCSAContextMenu,
+        'artist',
+      ),
+    ],
+    shouldAddContextMenu,
   ).register();
   new Spicetify.ContextMenu.Item(
     localization.copyImage,

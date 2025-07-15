@@ -123,7 +123,9 @@ type QueryTrackArtistsData = {
 type Localization = {
   error: string;
   text: string;
+  artistAndSong: string;
   songAndArtist: string;
+  copyMore: string;
   copyImage: string;
   copied: string;
   settings: {
