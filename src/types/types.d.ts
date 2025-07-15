@@ -8,10 +8,6 @@ interface Image {
   width: number;
 }
 
-interface External_url {
-  spotify: string;
-}
-
 interface Artist {
   external_urls: External_url;
   href: string;
@@ -19,23 +15,6 @@ interface Artist {
   name: string;
   type: string;
   uri: string;
-}
-
-interface External_url {
-  spotify: string;
-}
-
-interface Artist {
-  external_urls: External_url;
-  href: string;
-  id: string;
-  name: string;
-  type: string;
-  uri: string;
-}
-
-interface External_url {
-  spotify: string;
 }
 
 interface Item {
@@ -96,6 +75,51 @@ interface AlbumInfo {
   popularity: number;
 }
 
+type TrackArtistItem = {
+  profile: {
+    name: string;
+  };
+  uri: `spotify:artist:${string}`;
+};
+
+type ItemsWithCount<T> = {items: T[]; totalCount: number};
+
+interface AlbumUnion {
+  artists: ItemsWithCount<{
+    id: string;
+    profile: {name: string};
+    sharingInfo: {shareUrl: string};
+    uri: string;
+    visuals: {avatarImage: {sources: Image[]}};
+  }>;
+  coverArt: {
+    extractedColors: {
+      colorDark: {hex: string};
+      colorLight: {hex: string};
+      colorRaw: {hex: string};
+    };
+    sources: Image[];
+  };
+  date: {isoString: string; precision: string};
+  discs: ItemsWithCount<{number: string; tracks: {totalCount: number}}>;
+  label: string;
+  name: string;
+  tracksV2: ItemsWithCount<{
+    track: {
+      artists: {items: TrackArtistItem[]};
+      discNumber: number;
+      duration: {totalMilliseconds: number};
+      name: string;
+      playcount: string;
+      trackNumber: number;
+      uri: string;
+    };
+    uid: string;
+  }>;
+  type: 'ALBUM';
+  uri: string;
+}
+
 type RootlistContent = {
   items: {type: string; uri: string[]; name: string}[];
 };
@@ -109,12 +133,7 @@ type GetTrackNameData = {
 type QueryTrackArtistsData = {
   trackUnion: {
     artists: {
-      items: {
-        profile: {
-          name: string;
-        };
-        uri: `spotify:artist:${string}`;
-      }[];
+      items: TrackArtistItem[];
     };
     uri: `spotify:track:${string}`;
   };
@@ -125,6 +144,7 @@ type Localization = {
   text: string;
   artistAndSong: string;
   songAndArtist: string;
+  exportList: string;
   copyMore: string;
   copyImage: string;
   copied: string;
@@ -142,8 +162,7 @@ type SpotifyImageMax = {
   url: string;
 };
 
-type SpotifyImage = {
-  width: number;
-  height: number;
-  url: string;
+type ExportCSV = {
+  data: string;
+  suggestedName: string;
 };

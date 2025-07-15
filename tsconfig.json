@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "types": ["@types/wicg-file-system-access"],
     "target": "ES2022",
     "jsx": "react",
     "module": "commonjs",

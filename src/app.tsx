@@ -3,6 +3,7 @@
 // DESCRIPTION: Adds Copy text to context menu for Spotify v1.1.59 and Spicetify v2.0.0 and above
 
 import {SettingsSection} from 'spcr-settings';
+import {json2csv} from 'json-2-csv';
 
 const SETTINGS = {
   ID: 'settings-copy-to-clipboard',
@@ -21,6 +22,7 @@ const localizations: Record<string, Localization> = {
     copyImage: 'Ссылка на изображение',
     copyMore: 'Скопировать...',
     error: 'Ошибка',
+    exportList: 'Export list to csv file',
     settings: {
       name: 'Copy to clipboard settings',
       separator: 'Separator between Song name and Artist names',
@@ -34,6 +36,7 @@ const localizations: Record<string, Localization> = {
     copyImage: 'Copy image link',
     copyMore: 'Copy...',
     error: 'Error',
+    exportList: 'Export list to csv file',
     settings: {
       name: SETTINGS.NAME,
       separator: SETTINGS.SEPARATOR.DESCRIPTION,
@@ -47,6 +50,7 @@ const localizations: Record<string, Localization> = {
     copyImage: 'Sao chép liên kết ảnh',
     copyMore: 'Sao chép...',
     error: 'Lỗi',
+    exportList: 'Xuất danh sách ra file csv',
     settings: {
       name: 'Cài đặt Copy to clipboard',
       separator: 'Phân cách giữa tên bài hát và tên nghệ sĩ',
@@ -194,8 +198,7 @@ async function fetchEpisode(dataType: DataType, id: string) {
     }
     return getLinkFromUri(
       data.coverArt.reduce(
-        (res: SpotifyImage, curr: SpotifyImage) =>
-          res.width > curr.width ? res : curr,
+        (res: Image, curr: Image) => (res.width > curr.width ? res : curr),
         {width: 0, height: 0, url: ''},
       ).url,
     );
@@ -238,6 +241,79 @@ async function fetchSongArtistText(
     return {texts: [name.value, artists.value], separator};
   }
   return {texts: [], separator};
+}
+
+function excludeSpecialChar(s: string) {
+  return s.replace(/[/\\?%*:|"<>]/g, '-').trim();
+}
+
+// https://web.dev/patterns/files/save-a-file
+async function exportCSV({data, suggestedName}: ExportCSV) {
+  // Create a Blob from the CSV string
+  const blob = new Blob([data], {type: 'text/csv'});
+  // If the File System Access API is supported…
+  try {
+    // Show the file save dialog.
+    const handle = await window.showSaveFilePicker({
+      suggestedName,
+      types: [{accept: {'text/csv': ['.csv']}}],
+    });
+    // Write the blob to the file.
+    const writable = await handle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+  } catch (err) {
+    // Fail silently if the user has simply canceled the dialog.
+    if (err instanceof Error && err.name !== 'AbortError') {
+      console.error(err.name, err.message);
+      throw err;
+    }
+  }
+}
+
+async function fetchAlbumSongList(uri: string, offset = 0) {
+  try {
+    const {getAlbum} = Spicetify.GraphQL.Definitions;
+    const {
+      data: {albumUnion},
+    } = (await Spicetify.GraphQL.Request(getAlbum, {
+      uri,
+      includePrerelease: false,
+      locale: '',
+      offset,
+      limit: 50,
+    })) as {data: {albumUnion: AlbumUnion}};
+    const {
+      tracksV2: {items: trackItems},
+      name: albumName,
+      artists: {items: albumArtists},
+    } = albumUnion;
+    const data: {
+      discNumber: number;
+      trackNumber: number;
+      name: string;
+      artists: string;
+    }[] = [];
+    trackItems.forEach(item => {
+      const {
+        track: {discNumber, artists, name, trackNumber},
+      } = item;
+      data.push({
+        discNumber,
+        trackNumber,
+        name,
+        artists: artists.items.map(i => i.profile.name).join('; '),
+      });
+    });
+    const suggestedName =
+      excludeSpecialChar(
+        `${albumName} by ${albumArtists.map(a => a.profile.name).join(', ')}`,
+      ) + '.csv';
+    await exportCSV({data: json2csv(data), suggestedName});
+  } catch (e) {
+    console.log(e);
+    throw new Error((e as Error).message);
+  }
 }
 
 function initCopyText(localization: Localization) {
@@ -394,6 +470,31 @@ function initCopyText(localization: Localization) {
       }
     };
 
+  const getExportList: Spicetify.ContextMenu.OnClickCallback = async uris => {
+    const {Type} = Spicetify.URI;
+    const uri = Spicetify.URI.fromString(uris[0]);
+
+    try {
+      switch (uri.type) {
+        case Type.ALBUM:
+          await fetchAlbumSongList(uri.toURI());
+          break;
+        case Type.ARTIST:
+          break;
+        case Type.PLAYLIST:
+          break;
+        case Type.PLAYLIST_V2:
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      Spicetify.showNotification(
+        `${localization.error}: ${(error as Error).message}`,
+      );
+    }
+  };
+
   function sendToClipboard(text: string | null) {
     if (text) {
       Spicetify.showNotification(`${localization.copied}: ${text}`);
@@ -444,6 +545,24 @@ function initCopyText(localization: Localization) {
       }
     };
 
+  const shouldAddExportListContextMenu: Spicetify.ContextMenu.ShouldAddCallback =
+    uris => {
+      if (uris.length === 1) {
+        const {Type} = Spicetify.URI;
+        const uri = Spicetify.URI.fromString(uris[0]);
+        switch (uri.type) {
+          case Type.ALBUM:
+          case Type.ARTIST:
+          case Type.PLAYLIST:
+          case Type.PLAYLIST_V2:
+            return true;
+          default:
+            return false;
+        }
+      }
+      return false;
+    };
+
   const shouldAddCopyImageContextMenu: Spicetify.ContextMenu.ShouldAddCallback =
     uris => {
       if (uris.length === 1) {
@@ -461,9 +580,8 @@ function initCopyText(localization: Localization) {
           default:
             return false;
         }
-      } else {
-        return false;
       }
+      return false;
     };
 
   new Spicetify.ContextMenu.Item(
@@ -486,6 +604,12 @@ function initCopyText(localization: Localization) {
         getArtistSongText,
         shouldAddCSAContextMenu,
         'artist',
+      ),
+      new Spicetify.ContextMenu.Item(
+        localization.exportList,
+        getExportList,
+        shouldAddExportListContextMenu,
+        'list-view',
       ),
     ],
     shouldAddContextMenu,
