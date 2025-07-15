@@ -369,18 +369,9 @@ async function fetchArtistSongList(uri: string) {
     }
     offset = albumUris.length;
   } while (true);
-  type ArtistSongListItem = {
-    albumName: string;
-    discNumber: number;
-    trackNumber: number;
-    name: string;
-    artists: string;
-    type: string;
-    releaseDate: string;
-  };
   const albumPromises = albumUris.map(async u => {
     const result = await fetchAlbumSongList(u.uri);
-    return result.data.map<ArtistSongListItem>(d => ({
+    return result.data.map<ArtistSongListItemResult>(d => ({
       albumName: u.name,
       discNumber: d.discNumber,
       trackNumber: d.trackNumber,
@@ -391,7 +382,7 @@ async function fetchArtistSongList(uri: string) {
     }));
   });
   const albumSongListResult = await Promise.allSettled(albumPromises);
-  const data: ArtistSongListItem[] = [];
+  const data: ArtistSongListItemResult[] = [];
   albumSongListResult.forEach(a => {
     if (a.status === 'fulfilled') {
       a.value.forEach(v => {
@@ -405,12 +396,36 @@ async function fetchArtistSongList(uri: string) {
   });
 }
 
+async function fetchPlaylistSongList(id: string) {
+  try {
+    const {
+      items,
+      playlist: {name, owner},
+    } = (await Spicetify.CosmosAsync.get(
+      `sp://core-playlist/v1/playlist/spotify:playlist:${id}`,
+    )) as PlaylistData;
+    const data: {name: string; artists: string; albumName: string}[] =
+      items.map(i => ({
+        name: i.name,
+        artists: i.artists.map(a => a.name).join('; '),
+        albumName: i.album.name,
+      }));
+    await exportCSV({
+      data: json2csv(data, {excelBOM: true}),
+      suggestedName: excludeSpecialChar(`${name}, ${owner.name}`) + '.csv',
+    });
+  } catch (e) {
+    console.log(e);
+    throw new Error((e as Error).message);
+  }
+}
+
 function initCopyText(localization: Localization) {
   const getText: Spicetify.ContextMenu.OnClickCallback = async uris => {
     const {Type} = Spicetify.URI;
     const uri = Spicetify.URI.fromString(uris[0]);
     // @ts-ignore _base62Id may be existed on old versions
-    const id: string = uri._base62Id ? uri._base62Id : uri.id;
+    const id: string = uri._base62Id || uri.id;
 
     try {
       switch (uri.type) {
@@ -572,8 +587,13 @@ function initCopyText(localization: Localization) {
           await fetchArtistSongList(uri.toURI());
           break;
         case Type.PLAYLIST:
+          Spicetify.showNotification(
+            `${localization.error}: Unsupported right now. Please file a issue with this playlist`,
+          );
           break;
         case Type.PLAYLIST_V2:
+          // @ts-ignore _base62Id may be existed on old versions
+          await fetchPlaylistSongList(uri._base62Id || uri.id);
           break;
         default:
           break;

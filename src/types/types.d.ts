@@ -134,6 +134,41 @@ interface ArtistDiscography {
   };
 }
 
+interface PlaylistData {
+  items: {
+    album: {
+      link: string;
+      name: string;
+    };
+    artists: {link: string; name: string}[];
+    discNumber: number;
+    name: string;
+    trackNumber: number;
+  }[];
+  playlist: {
+    link: string;
+    name: string;
+    owner: {
+      image: string;
+      link: string;
+      name: string;
+      thumbnail: string;
+      username: string;
+    };
+    totalLength: number;
+  };
+}
+
+type ArtistSongListItemResult = {
+  albumName: string;
+  discNumber: number;
+  trackNumber: number;
+  name: string;
+  artists: string;
+  type: string;
+  releaseDate: string;
+};
+
 type RootlistContent = {
   items: {type: string; uri: string[]; name: string}[];
 };
