@@ -20,9 +20,8 @@ const localizations: Record<string, Localization> = {
     artistAndSong: 'Скопировать артиста и трек',
     copied: 'Скопировано',
     copyImage: 'Ссылка на изображение',
-    copyMore: 'Скопировать...',
     error: 'Ошибка',
-    exportList: 'Export list to csv file',
+    exportList: 'Export song list to csv file',
     settings: {
       name: 'Copy to clipboard settings',
       separator: 'Separator between Song name and Artist names',
@@ -34,9 +33,8 @@ const localizations: Record<string, Localization> = {
     artistAndSong: 'Copy Artist names & Song',
     copied: 'Copied',
     copyImage: 'Copy image link',
-    copyMore: 'Copy...',
     error: 'Error',
-    exportList: 'Export list to csv file',
+    exportList: 'Export song list to csv file',
     settings: {
       name: SETTINGS.NAME,
       separator: SETTINGS.SEPARATOR.DESCRIPTION,
@@ -48,9 +46,8 @@ const localizations: Record<string, Localization> = {
     artistAndSong: 'Sao chép tên nghệ sĩ & bài hát',
     copied: 'Đã sao chép',
     copyImage: 'Sao chép liên kết ảnh',
-    copyMore: 'Sao chép...',
     error: 'Lỗi',
-    exportList: 'Xuất danh sách ra file csv',
+    exportList: 'Xuất danh sách bài hát ra file csv',
     settings: {
       name: 'Cài đặt Copy to clipboard',
       separator: 'Phân cách giữa tên bài hát và tên nghệ sĩ',
@@ -700,29 +697,23 @@ function initCopyText(localization: Localization) {
     shouldAddContextMenu,
     'copy',
   ).register();
-  new Spicetify.ContextMenu.SubMenu(
-    localization.copyMore,
-    [
-      new Spicetify.ContextMenu.Item(
-        localization.songAndArtist,
-        getSongArtistText,
-        shouldAddCSAContextMenu,
-        'artist',
-      ),
-      new Spicetify.ContextMenu.Item(
-        localization.artistAndSong,
-        getArtistSongText,
-        shouldAddCSAContextMenu,
-        'artist',
-      ),
-      new Spicetify.ContextMenu.Item(
-        localization.exportList,
-        getExportList,
-        shouldAddExportListContextMenu,
-        'list-view',
-      ),
-    ],
-    shouldAddContextMenu,
+  new Spicetify.ContextMenu.Item(
+    localization.songAndArtist,
+    getSongArtistText,
+    shouldAddCSAContextMenu,
+    'artist',
+  ).register();
+  new Spicetify.ContextMenu.Item(
+    localization.artistAndSong,
+    getArtistSongText,
+    shouldAddCSAContextMenu,
+    'artist',
+  ).register();
+  new Spicetify.ContextMenu.Item(
+    localization.exportList,
+    getExportList,
+    shouldAddExportListContextMenu,
+    'list-view',
   ).register();
   new Spicetify.ContextMenu.Item(
     localization.copyImage,

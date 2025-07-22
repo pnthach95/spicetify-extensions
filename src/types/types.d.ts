@@ -194,7 +194,6 @@ type Localization = {
   artistAndSong: string;
   songAndArtist: string;
   exportList: string;
-  copyMore: string;
   copyImage: string;
   copied: string;
   settings: {
