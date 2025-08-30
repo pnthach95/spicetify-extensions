@@ -1,6 +1,6 @@
 # Copy text extension
 
-# [DO NOT UPDATE SPOTIFY TO LATEST VERSION. CLICK TO READ THE REASON](#25)
+# [DO NOT UPDATE SPOTIFY TO LATEST VERSION. CLICK TO READ THE REASON](https://github.com/pnthach95/spicetify-extensions/issues/25)
 
 Spicetify extension which allows you to copy text (song name, artist name, album name) in Spotify.
 
