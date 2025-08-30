@@ -602,10 +602,16 @@ function initCopyText(localization: Localization) {
     }
   };
 
-  function sendToClipboard(text: string | null) {
+  async function sendToClipboard(text: string | null) {
     if (text) {
+      if (Spicetify.Platform.ClipboardAPI) {
+        Spicetify.Platform.ClipboardAPI.copy(text);
+      } else if (navigator?.clipboard) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        throw new Error('Cannot copy text on this Spotify version');
+      }
       Spicetify.showNotification(`${localization.copied}: ${text}`);
-      Spicetify.Platform.ClipboardAPI.copy(text);
     }
   }
 
