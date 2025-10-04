@@ -13,22 +13,13 @@ const SETTINGS = {
     DESCRIPTION: 'Separator between Song name and Artist names',
     DEFAULT: '; ',
   },
-};
+} as const;
 
-const localizations: Record<string, Localization> = {
-  ru: {
-    artistAndSong: 'Скопировать артиста и трек',
-    copied: 'Скопировано',
-    copyImage: 'Ссылка на изображение',
-    error: 'Ошибка',
-    exportList: 'Export song list to csv file',
-    settings: {
-      name: 'Copy to clipboard settings',
-      separator: 'Separator between Song name and Artist names',
-    },
-    songAndArtist: 'Скопировать трек и артиста',
-    text: 'Скопировать текст',
-  },
+const DEFAULT_LOCALE = 'en';
+
+const LOCALIZATIONS: Record<string, Partial<Localization>> & {
+  [DEFAULT_LOCALE]: Localization;
+} = {
   en: {
     artistAndSong: 'Copy Artist names & Song',
     copied: 'Copied',
@@ -41,6 +32,19 @@ const localizations: Record<string, Localization> = {
     },
     songAndArtist: 'Copy Song & Artist names',
     text: 'Copy Text',
+  },
+  ru: {
+    artistAndSong: 'Скопировать исполнителя и название трека',
+    copied: 'Скопировано',
+    copyImage: 'Скопировать ссылку на изображение',
+    error: 'Ошибка',
+    exportList: 'Экспортировать спискок треков в csv файл',
+    songAndArtist: 'Скопировать название трека и исполнителя',
+    settings: {
+      name: 'Настройки Copy to clipboard',
+      separator: 'Разделитель между названием трека и исполнителем',
+    },
+    text: 'Скопировать текст',
   },
   vi: {
     artistAndSong: 'Sao chép tên nghệ sĩ & bài hát',
@@ -55,17 +59,43 @@ const localizations: Record<string, Localization> = {
     songAndArtist: 'Sao chép tên bài hát & nghệ sĩ',
     text: 'Sao chép tên',
   },
-};
+} as const;
 
-async function getLocalization() {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  const locale = Spicetify.Locale ? Spicetify.Locale.getLocale() : 'en';
-  // console.log('Spicetify.Locale._locale', Spicetify.Locale._locale);
-  // console.log('Spicetify.Locale.getLocale', Spicetify.Locale.getLocale());
+function getLocalization(locale: string) {
+  if (locale === DEFAULT_LOCALE || !(locale in LOCALIZATIONS)) {
+    return LOCALIZATIONS[DEFAULT_LOCALE];
+  }
 
-  return Object.keys(localizations).includes(locale)
-    ? localizations[locale as keyof typeof localizations]
-    : localizations['en'];
+  function deepMerge<T extends Record<string, unknown>>(
+    target: T,
+    source: Partial<T>,
+  ) {
+    const result = {...target};
+
+    for (const key in source) {
+      if (source.hasOwnProperty(key)) {
+        const sourceValue = source[key];
+        const targetValue = target[key];
+        if (
+          sourceValue &&
+          typeof sourceValue === 'object' &&
+          targetValue &&
+          typeof targetValue === 'object'
+        ) {
+          result[key] = deepMerge(
+            targetValue as Record<string, unknown>,
+            sourceValue,
+          ) as T[Extract<keyof T, string>];
+        } else if (sourceValue !== undefined) {
+          result[key] = sourceValue as T[Extract<keyof T, string>];
+        }
+      }
+    }
+
+    return result;
+  }
+
+  return deepMerge(LOCALIZATIONS[DEFAULT_LOCALE], LOCALIZATIONS[locale]);
 }
 
 async function fetchAlbum(dataType: DataType, id?: string) {
@@ -729,12 +759,9 @@ function initCopyText(localization: Localization) {
   ).register();
 }
 
-async function main() {
-  while (!Spicetify || document.readyState !== 'complete') {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }
+function main() {
+  const localization = getLocalization(navigator.language);
 
-  const localization = await getLocalization();
   const settings = new SettingsSection(localization.settings.name, SETTINGS.ID);
   settings.addInput(
     SETTINGS.SEPARATOR.KEY,
