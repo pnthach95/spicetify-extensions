@@ -760,7 +760,7 @@ function initCopyText(localization: Localization) {
 }
 
 function main() {
-  const localization = getLocalization(navigator.language);
+  const localization = getLocalization(navigator.language.split('-')[0]);
 
   const settings = new SettingsSection(localization.settings.name, SETTINGS.ID);
   settings.addInput(
