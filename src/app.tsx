@@ -139,11 +139,11 @@ async function fetchArtist(dataType: DataType, uri: string) {
   }
 }
 
-async function fetchArtists(uri: string) {
+async function fetchArtists(trackUri: string) {
   const {queryTrackArtists} = Spicetify.GraphQL.Definitions;
   try {
     const {data} = (await Spicetify.GraphQL.Request(queryTrackArtists, {
-      uri,
+      trackUri,
       offset: 0,
       limit: 10,
     })) as {data: QueryTrackArtistsData};
@@ -760,7 +760,9 @@ function initCopyText(localization: Localization) {
 }
 
 function main() {
-  const localization = getLocalization(new Intl.Locale(navigator.language).language);
+  const localization = getLocalization(
+    new Intl.Locale(navigator.language).language,
+  );
 
   const settings = new SettingsSection(localization.settings.name, SETTINGS.ID);
   settings.addInput(
