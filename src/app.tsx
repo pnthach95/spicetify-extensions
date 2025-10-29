@@ -143,6 +143,7 @@ async function fetchArtists(trackUri: string) {
   const {queryTrackArtists} = Spicetify.GraphQL.Definitions;
   try {
     const {data} = (await Spicetify.GraphQL.Request(queryTrackArtists, {
+      uri: trackUri, // <== backward compatible
       trackUri,
       offset: 0,
       limit: 10,
