@@ -137,26 +137,27 @@ interface ArtistDiscography {
 interface PlaylistData {
   items: {
     album: {
-      link: string;
+      uri: string;
       name: string;
     };
-    artists: {link: string; name: string}[];
+    artists: {uri: string; name: string}[];
     discNumber: number;
     name: string;
     trackNumber: number;
   }[];
-  playlist: {
-    link: string;
-    name: string;
-    owner: {
-      image: string;
-      link: string;
-      name: string;
-      thumbnail: string;
-      username: string;
-    };
-    totalLength: number;
+}
+
+interface PlaylistMetadata {
+  uri: string;
+  name: string;
+  images: {label: string; url: string}[];
+  owner: {
+    images: {label: string; url: string}[];
+    uri: string;
+    displayName: string;
+    username: string;
   };
+  totalLength: number;
 }
 
 type ArtistSongListItemResult = {

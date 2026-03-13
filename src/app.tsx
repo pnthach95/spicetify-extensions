@@ -98,15 +98,27 @@ function getLocalization(locale: string) {
   return deepMerge(LOCALIZATIONS[DEFAULT_LOCALE], LOCALIZATIONS[locale]);
 }
 
-async function fetchAlbum(dataType: DataType, id?: string) {
+async function fetchAlbum(dataType: DataType, uri?: string) {
   try {
-    const albumInfo: AlbumInfo = await Spicetify.CosmosAsync.get(
-      `https://api.spotify.com/v1/albums/${id}`,
-    );
+    const {getAlbum} = Spicetify.GraphQL.Definitions;
+    const {
+      data: {
+        albumUnion: {
+          name,
+          coverArt: {sources},
+        },
+      },
+    } = (await Spicetify.GraphQL.Request(getAlbum, {
+      uri,
+      includePrerelease: true,
+      locale: '',
+      offset: 0,
+      limit: 1,
+    })) as {data: {albumUnion: AlbumUnion}};
     if (dataType === 'image') {
-      return albumInfo.images[0].url;
+      return sources.sort((a, b) => b.width - a.width)[0].url;
     }
-    return albumInfo.name;
+    return name;
   } catch (e) {
     console.log(e);
     throw new Error((e as Error).message);
@@ -171,13 +183,14 @@ async function fetchTrackName(uri: string) {
 }
 
 function getLinkFromUri(uri: string) {
-  if (uri.includes('mosaic:')) {
-    throw new Error('Cannot copy mosaic image');
-  }
   if (uri.startsWith('spotify')) {
+    if (uri.includes('mosaic:')) {
+      const pictureUri = uri.replace('spotify:mosaic:', '').replaceAll(':', '');
+      return `https://mosaic.scdn.co/640/${pictureUri}`;
+    }
     const pictureUri = uri.split(':').pop();
     if (pictureUri) {
-      return 'https://i.scdn.co/image/' + pictureUri;
+      return `https://i.scdn.co/image/${pictureUri}`;
     } else {
       throw new Error('Not found');
     }
@@ -188,13 +201,14 @@ function getLinkFromUri(uri: string) {
 
 async function fetchPlaylist(dataType: DataType, id: string) {
   try {
-    const res = await Spicetify.CosmosAsync.get(
-      `sp://core-playlist/v1/playlist/spotify:playlist:${id}`,
-    );
+    const res = (await Spicetify.Platform.PlaylistAPI.getMetadata(
+      `spotify:playlist:${id}`,
+      {limit: 1},
+    )) as PlaylistMetadata;
     if (dataType === 'name') {
-      return res.playlist.name;
+      return res.name;
     }
-    return getLinkFromUri(res.playlist.picture);
+    return getLinkFromUri(res.images[0].url);
   } catch (e) {
     console.log(e);
     throw new Error((e as Error).message);
@@ -426,12 +440,14 @@ async function fetchArtistSongList(uri: string) {
 
 async function fetchPlaylistSongList(id: string) {
   try {
-    const {
-      items,
-      playlist: {name, owner},
-    } = (await Spicetify.CosmosAsync.get(
-      `sp://core-playlist/v1/playlist/spotify:playlist:${id}`,
+    const {items} = (await Spicetify.Platform.PlaylistAPI.getContents(
+      `spotify:playlist:${id}`,
+      {limit: 9999999},
     )) as PlaylistData;
+    const metadata = (await Spicetify.Platform.PlaylistAPI.getMetadata(
+      `spotify:playlist:${id}`,
+      {limit: 1},
+    )) as PlaylistMetadata;
     const data: {name: string; artists: string; albumName: string}[] =
       items.map(i => ({
         name: i.name,
@@ -440,7 +456,9 @@ async function fetchPlaylistSongList(id: string) {
       }));
     await exportCSV({
       data: json2csv(data, {excelBOM: true}),
-      suggestedName: excludeSpecialChar(`${name}, ${owner.name}`) + '.csv',
+      suggestedName:
+        excludeSpecialChar(`${metadata.name}, ${metadata.owner.username}`) +
+        '.csv',
     });
   } catch (e) {
     console.log(e);
@@ -480,7 +498,7 @@ function initCopyText(localization: Localization) {
           sendToClipboard(`${uri.album ? uri.album : ''}`);
           break;
         case Type.ALBUM:
-          sendToClipboard(await fetchAlbum('name', uri.id));
+          sendToClipboard(await fetchAlbum('name', uri.toURI()));
           break;
         case Type.ARTIST:
           sendToClipboard(await fetchArtist('name', uri.toURI()));
@@ -528,7 +546,7 @@ function initCopyText(localization: Localization) {
           sendToClipboard(await fetchTrackName(uri.toURI()));
           break;
         case Type.ALBUM:
-          sendToClipboard(await fetchAlbum('image', uri.id));
+          sendToClipboard(await fetchAlbum('image', uri.toURI()));
           break;
         case Type.ARTIST:
           sendToClipboard(await fetchArtist('image', uri.toURI()));
