@@ -5,13 +5,12 @@
     "jsx": "react",
     "module": "commonjs",
     "resolveJsonModule": true,
+    "rootDir": "./src",
     "outDir": "dist",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true
   },
-  "include": [
-    "./src/**/*.*"
-  ]
+  "include": ["./src/**/*.*"]
 }

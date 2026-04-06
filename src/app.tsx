@@ -653,14 +653,39 @@ function initCopyText(localization: Localization) {
 
   async function sendToClipboard(text: string | null) {
     if (text) {
-      if (Spicetify.Platform.ClipboardAPI) {
-        Spicetify.Platform.ClipboardAPI.copy(text);
-      } else if (navigator?.clipboard) {
-        await navigator.clipboard.writeText(text);
-      } else {
+      const textArea = document.createElement('textarea');
+      textArea.style.position = 'fixed';
+      textArea.style.top = '0';
+      textArea.style.left = '0';
+      textArea.style.width = '2em';
+      textArea.style.height = '2em';
+      textArea.style.padding = '0';
+      textArea.style.border = 'none';
+      textArea.style.outline = 'none';
+      textArea.style.boxShadow = 'none';
+      textArea.style.background = 'transparent';
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        if (successful) {
+          Spicetify.showNotification(`${localization.copied}: ${text}`);
+        } else {
+          if (Spicetify.Platform.ClipboardAPI) {
+            Spicetify.Platform.ClipboardAPI.copy(text);
+          } else if (navigator?.clipboard) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            throw new Error('Cannot copy text on this Spotify version');
+          }
+          Spicetify.showNotification(`${localization.copied}: ${text}`);
+        }
+      } catch (err) {
         throw new Error('Cannot copy text on this Spotify version');
       }
-      Spicetify.showNotification(`${localization.copied}: ${text}`);
     }
   }
 
